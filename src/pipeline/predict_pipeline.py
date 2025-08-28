@@ -3,7 +3,7 @@ import pandas as pd
 from typing import Union
 from src.exception import CustomException
 from src.utils import load_object
-import os 
+import os
 from src.config import config
 
 class PredictPipeline:
@@ -35,7 +35,14 @@ class PredictPipeline:
             
             model = load_object(file_path=model_path)
             preprocessor = load_object(file_path=preprocessor_path)
-            
+
+            # Reorder columns explicitly to match training order
+            expected_cols = config.CATEGORICAL_COLUMNS + [col for col in config.NUMERICAL_COLUMNS if col in features.columns]
+            missing = [c for c in expected_cols if c not in features.columns]
+            if missing:
+                raise ValueError(f"Missing required feature columns: {missing}")
+            features = features[expected_cols + [c for c in features.columns if c not in expected_cols]]
+
             data_scaled = preprocessor.transform(features)
             preds = model.predict(data_scaled)
             
@@ -47,29 +54,34 @@ class PredictPipeline:
 
 
 class CustomData:
-    """
-    Custom data class for handling user input data
-    """
-    def __init__(self,
+    """Container for a single prediction sample with validation and normalization."""
+
+    def __init__(
+        self,
         gender: str,
         race_ethnicity: str,
         parental_level_of_education: str,
         lunch: str,
         test_preparation_course: str,
         reading_score: Union[int, float],
-        writing_score: Union[int, float]
-    ):
-        # Validate inputs
+        writing_score: Union[int, float],
+    ) -> None:
+        # Validate inputs first
         self._validate_inputs(
-            gender, race_ethnicity, parental_level_of_education,
-            lunch, test_preparation_course, reading_score, writing_score
+            gender,
+            race_ethnicity,
+            parental_level_of_education,
+            lunch,
+            test_preparation_course,
+            reading_score,
+            writing_score,
         )
-        
-        self.gender = gender
-        self.race_ethnicity = race_ethnicity
-        self.parental_level_of_education = parental_level_of_education
-        self.lunch = lunch
-        self.test_preparation_course = test_preparation_course
+        # Store normalized lowercase versions to ensure consistency with training
+        self.gender = gender.strip().lower()
+        self.race_ethnicity = race_ethnicity.strip().lower()
+        self.parental_level_of_education = parental_level_of_education.strip().lower()
+        self.lunch = lunch.strip().lower()
+        self.test_preparation_course = test_preparation_course.strip().lower()
         self.reading_score = float(reading_score)
         self.writing_score = float(writing_score)
 

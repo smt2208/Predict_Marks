@@ -41,6 +41,10 @@ class DataIngestion:
         """
         logging.info("Entered the data ingestion method or component")
         try:
+            # Ensure source dataset exists
+            if not os.path.exists(config.SOURCE_DATA_PATH):
+                raise FileNotFoundError(f"Source data not found at {config.SOURCE_DATA_PATH}")
+
             # Read the dataset
             df = pd.read_csv(config.SOURCE_DATA_PATH)
             logging.info('Read the dataset as dataframe')

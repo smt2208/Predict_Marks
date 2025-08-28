@@ -3,6 +3,8 @@ import pandas as pd
 import numpy as np
 from src.pipeline.predict_pipeline import CustomData, PredictPipeline
 import os
+import json
+from src.config import config
 
 # Page configuration
 st.set_page_config(
@@ -56,11 +58,24 @@ st.markdown('<h1 class="main-header">📊 Student Performance Predictor</h1>', u
 
 col1, col2, col3 = st.columns([1, 2, 1])
 with col2:
-    st.markdown('<div class="info-box">This application predicts student math scores based on demographic and academic factors using advanced machine learning algorithms.</div>', unsafe_allow_html=True)
+    # Attempt to load model metadata if present
+    metadata_path = os.path.join(config.ARTIFACTS_DIR, "model_metadata.json")
+    model_meta = {}
+    if os.path.exists(metadata_path):
+        try:
+            with open(metadata_path, "r", encoding="utf-8") as f:
+                model_meta = json.load(f)
+        except Exception:
+            model_meta = {}
+    if model_meta:
+        info_extra = f"<br><b>Model:</b> {model_meta.get('best_model_name')} | <b>Val R²:</b> {model_meta.get('best_model_score_val'):.3f} | <b>Test R²:</b> {model_meta.get('test_r2'):.3f}"
+    else:
+        info_extra = ""
+    st.markdown(f'<div class="info-box">This application predicts student math scores based on demographic and academic factors using advanced machine learning algorithms.{info_extra}</div>', unsafe_allow_html=True)
 
-# Check if model artifacts exist
-model_path = "artifacts/model.pkl"
-preprocessor_path = "artifacts/preprocessor.pkl"
+# Check if model artifacts exist (use centralized config paths)
+model_path = config.MODEL_FILE_PATH
+preprocessor_path = config.PREPROCESSOR_FILE_PATH
 
 if not os.path.exists(model_path) or not os.path.exists(preprocessor_path):
     st.error("⚠️ Model artifacts not found! Please train the model first by running: `python src/pipeline/train_pipeline.py`")

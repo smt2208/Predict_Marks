@@ -3,7 +3,7 @@ from dataclasses import dataclass
 import numpy as np
 import pandas as pd
 import os
-from src.utils import save_object  # There in utils
+from src.utils import save_object  # serialization helper
 
 from sklearn.compose import ColumnTransformer
 from sklearn.impute import SimpleImputer
@@ -16,7 +16,8 @@ from src.config import config
 
 @dataclass
 class DataTransformationConfig:
-    preprocessor_obj_file_path=os.path.join('artifacts',"preprocessor.pkl")
+    # Use centralized config path (ensures consistency + absolute resolution)
+    preprocessor_obj_file_path = config.PREPROCESSOR_FILE_PATH
 
 class DataTransformation:
     def __init__(self):
@@ -80,13 +81,9 @@ class DataTransformation:
             input_feature_train_arr = preprocessing_obj.fit_transform(input_feature_train_df)
             input_feature_test_arr = preprocessing_obj.transform(input_feature_test_df)
 
-            # Replace any remaining NaNs with feature-wise median
-            input_feature_train_arr = np.nan_to_num(
-                input_feature_train_arr, nan=np.nanmedian(input_feature_train_arr)
-            )
-            input_feature_test_arr = np.nan_to_num(
-                input_feature_test_arr, nan=np.nanmedian(input_feature_test_arr)
-            )
+            # At this stage pipelines have imputed; conservative safeguard for stray inf values
+            input_feature_train_arr = np.nan_to_num(input_feature_train_arr, copy=False)
+            input_feature_test_arr = np.nan_to_num(input_feature_test_arr, copy=False)
 
             train_arr = np.c_[input_feature_train_arr, np.array(target_feature_train_df)]
             test_arr = np.c_[input_feature_test_arr, np.array(target_feature_test_df)]
