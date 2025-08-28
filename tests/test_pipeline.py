@@ -3,7 +3,6 @@ Test module for the Student Performance Predictor
 """
 import unittest
 import pandas as pd
-import numpy as np
 import os
 import sys
 

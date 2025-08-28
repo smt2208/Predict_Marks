@@ -4,9 +4,8 @@ Model evaluation utilities for the Student Performance Predictor
 import numpy as np
 import pandas as pd
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
-from typing import Dict, List, Tuple
+from typing import Dict
 import matplotlib.pyplot as plt
-import seaborn as sns
 from src.exception import CustomException
 from src.logger import logging
 import sys

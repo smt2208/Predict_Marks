@@ -2,7 +2,6 @@ import sys
 from dataclasses import dataclass
 import numpy as np
 import pandas as pd
-import os
 from src.utils import save_object  # serialization helper
 
 from sklearn.compose import ColumnTransformer
