@@ -11,14 +11,14 @@ from sklearn.ensemble import (
 )
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import r2_score
-from sklearn.neighbors import KNeighborsRegressor
 from sklearn.tree import DecisionTreeRegressor
 from xgboost import XGBRegressor
 
 from src.exception import CustomException
 from src.logger import logging
+from src.config import config
 
-from src.utils import save_object,evaluate_models
+from src.utils import save_object, evaluate_models
 
 @dataclass
 class ModelTrainerConfig:
@@ -29,14 +29,14 @@ class ModelTrainer:
         self.model_trainer_config=ModelTrainerConfig()
 
 
-    def initiate_model_trainer(self,train_array,test_array):
+    def initiate_model_trainer(self, train_array, test_array):
         try:
             logging.info("Split training and test input data")
-            X_train,y_train,X_test,y_test=(
-                train_array[:,:-1],
-                train_array[:,-1],
-                test_array[:,:-1],
-                test_array[:,-1]
+            X_train, y_train, X_test, y_test = (
+                train_array[:, :-1],
+                train_array[:, -1],
+                test_array[:, :-1],
+                test_array[:, -1],
             )
 
             # Replace NaNs and infs in training/testing arrays, just in case
@@ -45,14 +45,15 @@ class ModelTrainer:
             y_train = np.nan_to_num(y_train, nan=np.nanmedian(y_train))
             y_test = np.nan_to_num(y_test, nan=np.nanmedian(y_test))
 
+            # Provide deterministic results where possible
             models = {
-                "Random Forest": RandomForestRegressor(),
-                "Decision Tree": DecisionTreeRegressor(),
-                "Gradient Boosting": GradientBoostingRegressor(),
+                "Random Forest": RandomForestRegressor(random_state=config.RANDOM_STATE),
+                "Decision Tree": DecisionTreeRegressor(random_state=config.RANDOM_STATE),
+                "Gradient Boosting": GradientBoostingRegressor(random_state=config.RANDOM_STATE),
                 "Linear Regression": LinearRegression(),
-                "XGBRegressor": XGBRegressor(),
-                "CatBoosting Regressor": CatBoostRegressor(verbose=False),
-                "AdaBoost Regressor": AdaBoostRegressor(),
+                "XGBRegressor": XGBRegressor(random_state=config.RANDOM_STATE, verbosity=0),
+                "CatBoosting Regressor": CatBoostRegressor(verbose=False, random_state=config.RANDOM_STATE),
+                "AdaBoost Regressor": AdaBoostRegressor(random_state=config.RANDOM_STATE),
             }
             params={
                 "Decision Tree": {
@@ -83,22 +84,25 @@ class ModelTrainer:
                 
             }
 
-            model_report:dict=evaluate_models(X_train=X_train,y_train=y_train,X_test=X_test,y_test=y_test,
-                                             models=models,param=params)
-            
-            # To get best model score from dict
-            best_model_score = max(sorted(model_report.values()))
+            model_report: dict = evaluate_models(
+                X_train=X_train, y_train=y_train, X_test=X_test, y_test=y_test, models=models, param=params
+            )
 
-            # To get best model name from dict
+            if not model_report:
+                raise CustomException("Model evaluation returned empty report", sys)
 
-            best_model_name = list(model_report.keys())[
-                list(model_report.values()).index(best_model_score)
-            ]
+            best_model_name, best_model_score = max(model_report.items(), key=lambda x: x[1])
             best_model = models[best_model_name]
 
-            if best_model_score<0.6:
-                raise CustomException("No best model found")
-            logging.info(f"Best found model on both training and testing dataset")
+            if best_model_score < config.MODEL_SCORE_THRESHOLD:
+                raise CustomException(
+                    f"No model met threshold {config.MODEL_SCORE_THRESHOLD}. Best: {best_model_name}={best_model_score:.3f}",
+                    sys,
+                )
+
+            logging.info(
+                f"Best model: {best_model_name} with R2={best_model_score:.4f} (threshold {config.MODEL_SCORE_THRESHOLD})"
+            )
 
             save_object(
                 file_path=self.model_trainer_config.trained_model_file_path, #saving the model

@@ -1,0 +1,30 @@
+# Streamlit configuration file
+# https://docs.streamlit.io/library/advanced-features/configuration
+
+[server]
+# Port where the app runs
+port = 8501
+
+# Address to bind to
+address = "0.0.0.0"
+
+# Enable CORS
+enableCORS = false
+
+# Enable XSS protection
+enableXsrfProtection = false
+
+[browser]
+# Whether to open browser automatically
+gatherUsageStats = false
+
+[theme]
+# Theme configuration
+primaryColor = "#1f77b4"
+backgroundColor = "#ffffff"
+secondaryBackgroundColor = "#f0f2f6"
+textColor = "#262730"
+
+[logger]
+# Logging level
+level = "info"
